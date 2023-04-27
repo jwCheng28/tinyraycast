@@ -3,10 +3,25 @@
 This is currently a simple raycasting engine that uses raycast and projection to turn a 2d space into a 3d first-person-view environment.
 
 ## Demo
-### Still
-![alt text](https://github.com/jwCheng28/tinyraycast/blob/main/img/demo.png)
-### Movement
-![GIF](./img/demo.gif)
+### 2D view
+
+Stationary | Moving
+--- | ---
+<img src="./demo/2d_view.png" width="480"> | <img src="./demo/2d_movement.gif" width="480"> 
+
+### 3D view
+
+Stationary | Moving
+--- | ---
+<img src="./demo/3d_view.png" width="480"> | <img src="./demo/3d_movement.gif" width="480"> 
+
+### 2D and 3D view switching
+<img src="./demo/2d_3d_trasition.gif" width="480"> 
+
+## Controls
+- Up/Down arrow keys to move back and forth
+- Left/Right arrow keys to rotate
+- Space to switch viewing dimension
 
 ## Build
 Currently, the engine is only tested and supported on ubuntu platform.
