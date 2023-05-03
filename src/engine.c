@@ -22,8 +22,11 @@
 #define MAP_SIZE MAP_WIDTH*MAP_HEIGHT
 
 #define BOUNDARY 8
-#define MAP_IMAGE_WIDTH (320 + 2*BOUNDARY)
-#define MAP_IMAGE_HEIGHT (320 + 2*BOUNDARY)
+#define MAP_VIEW_WIDTH 320
+#define MAP_VIEW_HEIGHT 320
+#define MAP_VIEW_SIZE MAP_VIEW_WIDTH*MAP_VIEW_HEIGHT
+#define MAP_IMAGE_WIDTH (MAP_VIEW_WIDTH + 2*BOUNDARY)
+#define MAP_IMAGE_HEIGHT (MAP_VIEW_HEIGHT + 2*BOUNDARY)
 #define MAP_IMAGE_SIZE MAP_IMAGE_WIDTH*MAP_IMAGE_HEIGHT
 
 #define PURPLE 0xFF7400B8 //CDB4DB
@@ -34,6 +37,7 @@
 
 #define SIGN(x) (x < 0 ? -1 : (x > 0 ? 1 : 0))
 #define BOUND(x, mn, mx) (max(min(x, mx), mn))
+#define INBOUND(x, mn, mx) (mn <= x && x <= mx)
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -107,38 +111,38 @@ u32 colors[] = {0, 0, PURPLE, PINK, BLUE};
 // 0=empty, 1=player, 2/3/4 = walls
 u32 map_pixels[MAP_IMAGE_SIZE] = {0};
 u8 map[MAP_HEIGHT][MAP_WIDTH] = {
-    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 2, 2, 2, 0, 0, 2, 2, 2, 2, 2},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 2, 2},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}
+    {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}
 };
 
 void draw_line(u32 *pixels, u16 image_width, u16 image_height, u32 x_start, u32 x_end, u32 y_start, u32 y_end, u32 color) {
@@ -220,8 +224,8 @@ v2 ray_dir(float plane_scale) {
 
 ray_intersection ray_intersect(float plane_scale) {
     v2 dir = ray_dir(plane_scale);
-    i8 stepx = dir.x < 0 ? -1 : 1;
-    i8 stepy = dir.y < 0 ? -1 : 1;
+    i8 stepx = SIGN(dir.x);
+    i8 stepy = SIGN(dir.y);
     u16 mapx = (u16) p.pos.x, mapy = (u16) p.pos.y;
     float raylen_per_x = dir.x == 0 ? 1e20 : fabs(1/dir.x);
     float raylen_per_y = dir.y == 0 ? 1e20 : fabs(1/dir.y);
@@ -255,7 +259,7 @@ ray_intersection ray_intersect(float plane_scale) {
 }
 
 void render_2d_raycast() {
-    u16 length = MAP_IMAGE_HEIGHT - 2*BOUNDARY;
+    u16 length = MAP_VIEW_HEIGHT;
     u16 ratio = length / MAP_WIDTH;
     u16 y_offset = BOUNDARY;
     u16 x_offset = BOUNDARY;
@@ -330,22 +334,21 @@ void render_3d_raycast() {
 }
 
 int main(int argc, char **argv) {
-    p = (player) { (v2){8, 8}, (v2){1, 0}, (v2){0, 1}, 0 };
+    p = (player) { (v2){16, 4}, (v2){0, 1}, (v2){1, 0}, 0 };
 
     window = SDL_CreateWindow("Tinyraycast Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
                                SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
     texture = SDL_CreateTexture(renderer, 
                                 SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 
                                 IMAGE_WIDTH, IMAGE_HEIGHT);
     map_texture = SDL_CreateTexture(renderer, 
                                     SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 
                                     MAP_IMAGE_WIDTH, MAP_IMAGE_HEIGHT);
-
     SDL_Event event;
-    bool quit = false;
-    bool view_map = false;
-    i8 z_count = 0;
+    i8 z_count = 0, editor_color = 4;
+    bool quit = false, view_map = false, editor_mode = false, mouse_pressed = false;
     float rotate_speed = M_PI / 16.0, move_speed = 0.1, z_speed = 100;
     while (1) {
         while (SDL_PollEvent(&event)) {
@@ -353,15 +356,38 @@ int main(int argc, char **argv) {
                 quit = true;
                 break;
             }
+            if (event.type == SDL_MOUSEBUTTONUP) mouse_pressed = false;
+            if (event.type == SDL_MOUSEBUTTONDOWN) mouse_pressed = true;
+            if (event.type == SDL_MOUSEMOTION) {
+                if (mouse_pressed) {
+                    u16 mousex = event.motion.x, mousey = event.motion.y;
+                    if (view_map && editor_mode &&
+                        INBOUND(mousex, BOUNDARY, MAP_IMAGE_WIDTH-BOUNDARY-1) &&
+                        INBOUND(mousey, BOUNDARY, MAP_IMAGE_HEIGHT-BOUNDARY-1)) {
+                        u8 mapx = (mousex - BOUNDARY) / (MAP_VIEW_WIDTH / MAP_WIDTH);
+                        u8 mapy = (mousey - BOUNDARY) / (MAP_VIEW_HEIGHT / MAP_HEIGHT);
+                        if (mapy == (u16)p.pos.y && mapx == (u16)p.pos.x) continue;
+                        map[mapy][mapx] = editor_color;
+                    }
+                }
+            }
             if (event.type == SDL_KEYDOWN) {
                 u8 sym = event.key.keysym.scancode;
-                float nx = p.pos.x, ny = p.pos.y;
-                if (sym == SDL_SCANCODE_SPACE) {
-                    view_map ^= 1;
-                } else if (sym == SDL_SCANCODE_ESCAPE) {
+                if (sym == SDL_SCANCODE_ESCAPE) {
                     quit = true;
                     break;
-                } else if (sym == SDL_SCANCODE_LEFT) {
+                }
+
+                if (sym == SDL_SCANCODE_SPACE) {
+                    view_map ^= 1;
+                } else if (sym == SDL_SCANCODE_E) {
+                    editor_mode = true;
+                } else if (sym == SDL_SCANCODE_N) {
+                    editor_mode = false;
+                }
+
+                float nx = p.pos.x, ny = p.pos.y;
+                if (sym == SDL_SCANCODE_LEFT) {
                     nx = p.pos.x - p.plane.x * move_speed;
                     ny = p.pos.y - p.plane.y * move_speed;
                 } else if (sym == SDL_SCANCODE_RIGHT) {
@@ -390,6 +416,17 @@ int main(int argc, char **argv) {
                     p.pos.x = nx;
                     p.pos.y = ny;
                 }
+
+                if (!editor_mode) continue;
+                if (sym == SDL_SCANCODE_1) {
+                    editor_color = 0;
+                } else if (sym == SDL_SCANCODE_2) {
+                    editor_color = 2;
+                } else if (sym == SDL_SCANCODE_3) {
+                    editor_color = 3;
+                } else if (sym == SDL_SCANCODE_4) {
+                    editor_color = 4;
+                } 
             }
         }
         if (quit) break;
@@ -398,6 +435,7 @@ int main(int argc, char **argv) {
         memset(map_pixels, 0, sizeof(u32) * MAP_IMAGE_SIZE);
         SDL_RenderSetViewport(renderer, &full_viewport);
         SDL_RenderClear(renderer);
+
         render_3d_raycast();
         if (view_map) render_2d_raycast();
         SDL_RenderPresent(renderer);
