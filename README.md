@@ -16,14 +16,19 @@ Stationary | Moving
 <img src="./demo/3d_view.png" width="480"> | <img src="./demo/3d_movement.gif" width="480"> 
 
 ### 3D view with 2D minimap
-<img src="./demo/demo.gif" width="480"> 
+<img src="./demo/minimap.gif" width="480"> 
+
+### Editor Mode
+<img src="./demo/editor.gif" width="480"> 
 
 ## Controls
 - Up/Down arrow keys to move back and forth
 - Left/Right arrow keys to move left and right
 - W/S to turn up and down
 - A/D to turn left and right
-- Space to view 2d raycast minimap
+- Space to toggle 2d raycast minimap
+- E to enter editor mode, let's you draw on minimap
+- N to exit editor mode
 
 ## Build
 Currently, the engine is only tested and supported on ubuntu platform.
