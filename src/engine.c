@@ -10,11 +10,11 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#define SCREEN_WIDTH 720
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 960
+#define SCREEN_HEIGHT 720
 
-#define IMAGE_WIDTH SCREEN_WIDTH
-#define IMAGE_HEIGHT SCREEN_HEIGHT
+#define IMAGE_WIDTH 960
+#define IMAGE_HEIGHT 720
 #define IMAGE_SIZE IMAGE_WIDTH*IMAGE_HEIGHT
 
 #define MAP_WIDTH 16
@@ -24,6 +24,8 @@
 #define PURPLE 0xFF7400B8 //CDB4DB
 #define PINK 0xFFFB6F92 //FFAFCC
 #define BLUE 0xFF758BFD //A2D2FF
+
+#define SIGN(x) (x < 0 ? -1 : (x > 0 ? 1 : 0))
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -87,7 +89,6 @@ i32 min(i32 a, i32 b) {
 SDL_Window *window;
 SDL_Renderer *renderer;
 SDL_Texture *texture;
-SDL_Texture *map_texture;
 u32 pixels[IMAGE_SIZE] = {0};
 player p;
 u32 colors[] = {0, 0, PURPLE, PINK, BLUE};
@@ -108,28 +109,80 @@ u8 map[MAP_HEIGHT][MAP_WIDTH] = {
     {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4},
     {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4},
     {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4}
 };
 
-void draw_vert_line(u16 x, u16 y_start, u16 y_end, u32 color) {
-    assert(x >= 0 && x <= IMAGE_WIDTH);
-    assert(y_start >= 0 && y_start <= y_end && y_start <= IMAGE_HEIGHT);
-    assert(y_end >= 0 && y_end >= y_start && y_end <= IMAGE_HEIGHT);
+void draw_line(u32 *pixels, u16 image_width, u16 image_height, u32 x_start, u32 x_end, u32 y_start, u32 y_end, u32 color) {
+    assert(x_start >= 0 && x_start <= image_width);
+    assert(x_end >= 0 && x_end <= image_width);
+    assert(y_start >= 0 && y_start <= image_height);
+    assert(y_end >= 0 && y_end <= image_height);
 
-    for (u16 i = y_start; i < y_end; ++i) {
-        pixels[i*IMAGE_WIDTH + x] = color;
+    i16 dx = x_end - x_start, dy = y_end - y_start;
+    i8 stepx = SIGN(dx), stepy = SIGN(dy);
+    dx = abs(dx), dy = abs(dy);
+
+    i16 m, err, step_err;
+    i16 x = x_start, y = y_start;
+    if (dx > dy) {
+        m = 2 * dy;
+        err = -dx;
+        step_err = -2 * dx;
+        while (x != x_end) {
+            pixels[y * image_width + x] = color;
+            err += m;
+            x += stepx;
+            if (err >= 0) {
+                y += stepy;
+                err += step_err;
+            }
+        }
+    } else {
+        m = 2 * dx;
+        err = -dy;
+        step_err = -2 * dy;
+        while (y != y_end) {
+            pixels[y * image_width + x] = color;
+            err += m;
+            y += stepy;
+            if (err >= 0) {
+                x += stepx;
+                err += step_err;
+            }
+        }
+
     }
 }
 
-void draw_vert_strip(u16 x_start, u16 x_end, u16 y_start, u16 y_end, u32 color) {
-    assert(x_start >= 0 && x_start <= x_end && x_start <= IMAGE_WIDTH);
-    assert(x_end >= 0 && x_end >= x_start && x_end <= IMAGE_WIDTH);
-    assert(y_start >= 0 && y_start <= y_end && y_start <= IMAGE_HEIGHT);
-    assert(y_end >= 0 && y_end >= y_start && y_end <= IMAGE_HEIGHT);
+void draw_vert_line(u32 *pixels, u16 image_width, u16 image_height, u16 x, u16 y_start, u16 y_end, u32 color) {
+    assert(x >= 0 && x <= image_width);
+    assert(y_start >= 0 && y_start <= y_end && y_start <= image_height);
+    assert(y_end >= 0 && y_end >= y_start && y_end <= image_height);
+
+    for (u16 i = y_start; i < y_end; ++i) {
+        pixels[i*image_width + x] = color;
+    }
+}
+
+void draw_hor_line(u32 *pixels, u16 image_width, u16 image_height, u16 x_start, u16 x_end, u16 y, u32 color) {
+    assert(y >= 0 && y <= image_height);
+    assert(x_start >= 0 && x_start <= x_end && x_start <= image_width);
+    assert(x_end >= 0 && x_end >= x_start && x_end <= image_width);
 
     for (u16 i = x_start; i < x_end; ++i) {
-        draw_vert_line(i, y_start, y_end, color);
+        pixels[y*image_width + i] = color;
+    }
+}
+
+void draw_vert_strip(u32 *pixels, u16 image_width, u16 image_height, u16 x_start, u16 x_end, u16 y_start, u16 y_end, u32 color) {
+    assert(x_start >= 0 && x_start <= x_end && x_start <= image_width);
+    assert(x_end >= 0 && x_end >= x_start && x_end <= image_width);
+    assert(y_start >= 0 && y_start <= y_end && y_start <= image_height);
+    assert(y_end >= 0 && y_end >= y_start && y_end <= image_height);
+
+    for (u16 i = x_start; i < x_end; ++i) {
+        draw_vert_line(pixels, image_width, image_height, i, y_start, y_end, color);
     }
 }
 
@@ -168,8 +221,8 @@ ray_intersection ray_intersect(float plane_scale) {
             side = 1;
         }
 
-        assert(mapy >= 0 && mapy < MAP_HEIGHT);
-        assert(mapx >= 0 && mapx < MAP_WIDTH);
+        if (!(mapy >= 0 && mapy < MAP_HEIGHT) &&
+            !(mapx >= 0 && mapx < MAP_WIDTH)) break;
 
         if (map[mapy][mapx] > 1) break;
     }
@@ -188,41 +241,33 @@ void render_2d_raycast() {
 
     u16 px = p.pos.x * ratio + x_offset;
     u16 py = p.pos.y * ratio + y_offset;
-    i16 dx = p.dir.x * ratio;
-    i16 dy = p.dir.y * ratio;
-    i16 plx = p.plane.x * ratio;
-    i16 ply = p.plane.y * ratio;
 
-    SDL_Point player_points[ratio*ratio/25];
-    u16 k = 0;
-    SDL_RenderClear(renderer);
     for (u16 i = y_offset; i < IMAGE_HEIGHT-y_offset; ++i) {
         for (u16 j = x_offset; j < IMAGE_WIDTH-x_offset; ++j) {
             map_pixels[i*IMAGE_WIDTH + j] = colors[map[(u16) (i - y_offset)/ratio][(u16) (j - x_offset)/ratio]];
-            if (i >= py && i < py+ratio/5 && j >= px && j < px+ratio/5) player_points[k++] = (SDL_Point){j, i};//map_pixels[i*IMAGE_WIDTH + j] = 0xFFFFFFFF;
         }
     }
 
-    SDL_UpdateTexture(texture, NULL, map_pixels, sizeof(u32) * IMAGE_WIDTH);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_SetRenderDrawColor(renderer, 0xFC, 0xF6, 0xBD, 0xFF);
     v2 ray_end;
     u8 r = 2;
     ray_intersection ri;
     for (u16 i = py+r; i < py+ratio/5-r; ++i) {
         for (u16 j = px+r; j < px+ratio/5-r; ++j) {
-            for (float ps = -1; ps <= 1; ps+=0.01) {
+            for (float ps = -1; ps <= 1; ps+=0.02) {
                 ri = ray_intersect(ps);
                 ray_end = scale(ray_dir(ps), ri.ray_len * ratio);
-                SDL_RenderDrawLine(renderer, j, i, px + (i16) ray_end.x, py + (i16) ray_end.y);
+                draw_line(map_pixels, IMAGE_WIDTH, IMAGE_HEIGHT, j, px + (i16) ray_end.x, i, py + (i16) ray_end.y, 0xFFFCF6BD);
             }
         }
     }
-    SDL_SetRenderDrawColor(renderer, 0xCE, 0xD4, 0xDA, 0xFF);
-    SDL_RenderDrawPoints(renderer, player_points, k);
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-    SDL_RenderPresent(renderer);
+    for (u16 i = py; i < py+ratio/5; ++i) {
+        for (u16 j = px; j < px+ratio/5; ++j) {
+            map_pixels[i*IMAGE_WIDTH + j] = 0xFFCED4DA;
+        }
+    }
+
+    update_display(map_pixels);
 }
 
 void render_3d_raycast() {
@@ -236,9 +281,9 @@ void render_3d_raycast() {
             color = 0xFF000000 | (r * 0xED / 0xFF) | (g * 0xFA / 0xFF) | (b * 0xFD / 0xFF);
 
         }
-        draw_vert_line(i, 0, IMAGE_HEIGHT/2 - height/2, 0xFFCAF0F8);
-        draw_vert_line(i, IMAGE_HEIGHT/2 - height/2, IMAGE_HEIGHT/2 + height/2, color);
-        draw_vert_line(i, IMAGE_HEIGHT/2 + height/2, IMAGE_HEIGHT, 0xFFE3D5CA);
+        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, 0, IMAGE_HEIGHT/2 - height/2, 0xFFCAF0F8);
+        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, IMAGE_HEIGHT/2 - height/2, IMAGE_HEIGHT/2 + height/2, color);
+        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, IMAGE_HEIGHT/2 + height/2, IMAGE_HEIGHT, 0xFFE3D5CA);
     }
     update_display(pixels);
 }
