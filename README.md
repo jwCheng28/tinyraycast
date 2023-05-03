@@ -20,8 +20,10 @@ Stationary | Moving
 
 ## Controls
 - Up/Down arrow keys to move back and forth
-- Left/Right arrow keys to rotate
-- Space to switch viewing dimension
+- Left/Right arrow keys to move left and right
+- W/S to turn up and down
+- A/D to turn left and right
+- Space to view 2d raycast minimap
 
 ## Build
 Currently, the engine is only tested and supported on ubuntu platform.
