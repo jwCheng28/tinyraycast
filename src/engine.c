@@ -334,7 +334,7 @@ void render_3d_raycast() {
 }
 
 int main(int argc, char **argv) {
-    p = (player) { (v2){16, 4}, (v2){0, 1}, (v2){1, 0}, 0 };
+    p = (player) { (v2){16, 4}, (v2){0, 1}, (v2){-1, 0}, 0 };
 
     window = SDL_CreateWindow("Tinyraycast Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
                                SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
