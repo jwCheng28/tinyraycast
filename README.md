@@ -15,8 +15,8 @@ Stationary | Moving
 --- | ---
 <img src="./demo/3d_view.png" width="480"> | <img src="./demo/3d_movement.gif" width="480"> 
 
-### 2D and 3D view switching
-<img src="./demo/2d_3d_trasition.gif" width="480"> 
+### 3D view with 2D minimap
+<img src="./demo/demo.gif" width="480"> 
 
 ## Controls
 - Up/Down arrow keys to move back and forth
