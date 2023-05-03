@@ -10,20 +10,27 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#define SCREEN_WIDTH 960
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 800
 
-#define IMAGE_WIDTH 960
-#define IMAGE_HEIGHT 720
+#define IMAGE_WIDTH SCREEN_WIDTH
+#define IMAGE_HEIGHT SCREEN_HEIGHT
 #define IMAGE_SIZE IMAGE_WIDTH*IMAGE_HEIGHT
 
 #define MAP_WIDTH 16
 #define MAP_HEIGHT 16
 #define MAP_SIZE MAP_WIDTH*MAP_HEIGHT
 
+#define BOUNDARY 8
+#define MAP_IMAGE_WIDTH (320 + 2*BOUNDARY)
+#define MAP_IMAGE_HEIGHT (320 + 2*BOUNDARY)
+#define MAP_IMAGE_SIZE MAP_IMAGE_WIDTH*MAP_IMAGE_HEIGHT
+
 #define PURPLE 0xFF7400B8 //CDB4DB
 #define PINK 0xFFFB6F92 //FFAFCC
 #define BLUE 0xFF758BFD //A2D2FF
+#define SKY_COLOR 0xFFCAF0F8
+#define GROUND_COLOR 0xFFE3D5CA
 
 #define SIGN(x) (x < 0 ? -1 : (x > 0 ? 1 : 0))
 
@@ -89,28 +96,31 @@ i32 min(i32 a, i32 b) {
 SDL_Window *window;
 SDL_Renderer *renderer;
 SDL_Texture *texture;
+SDL_Texture *map_texture;
+SDL_Rect map_viewport = (SDL_Rect) {.x=0, .y=0, .w=MAP_IMAGE_WIDTH, .h=MAP_IMAGE_HEIGHT};
+SDL_Rect full_viewport = (SDL_Rect) {.x=0, .y=0, .w=IMAGE_WIDTH, .h=IMAGE_HEIGHT};
 u32 pixels[IMAGE_SIZE] = {0};
 player p;
 u32 colors[] = {0, 0, PURPLE, PINK, BLUE};
 // 0=empty, 1=player, 2/3/4 = walls
-u32 map_pixels[IMAGE_SIZE] = {0};
+u32 map_pixels[MAP_IMAGE_SIZE] = {0};
 u8 map[MAP_HEIGHT][MAP_WIDTH] = {
-    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 4},
-    {2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 4},
-    {2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 4, 4, 0, 4},
-    {2, 3, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 4, 4, 0, 4},
-    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4},
-    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 4},
+    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+    {2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 2},
+    {2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 0},
+    {2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4}
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 4, 4, 0, 0},
+    {2, 3, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 4, 4, 0, 0},
+    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
+    {2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2}
 };
 
 void draw_line(u32 *pixels, u16 image_width, u16 image_height, u32 x_start, u32 x_end, u32 y_start, u32 y_end, u32 color) {
@@ -186,13 +196,6 @@ void draw_vert_strip(u32 *pixels, u16 image_width, u16 image_height, u16 x_start
     }
 }
 
-void update_display(void *new_pixels) {
-    SDL_UpdateTexture(texture, NULL, new_pixels, sizeof(u32) * IMAGE_WIDTH);
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-}
-
 v2 ray_dir(float plane_scale) {
     return addv2(p.dir, scale(p.plane, plane_scale));
 }
@@ -221,7 +224,7 @@ ray_intersection ray_intersect(float plane_scale) {
             side = 1;
         }
 
-        if (!(mapy >= 0 && mapy < MAP_HEIGHT) &&
+        if (!(mapy >= 0 && mapy < MAP_HEIGHT) ||
             !(mapx >= 0 && mapx < MAP_WIDTH)) break;
 
         if (map[mapy][mapx] > 1) break;
@@ -234,40 +237,51 @@ ray_intersection ray_intersect(float plane_scale) {
 }
 
 void render_2d_raycast() {
-    u16 length = min(IMAGE_WIDTH, IMAGE_HEIGHT);
+    u16 length = MAP_IMAGE_HEIGHT - 2*BOUNDARY;
     u16 ratio = length / MAP_WIDTH;
-    u16 y_offset = (IMAGE_HEIGHT - length) / 2;
-    u16 x_offset = (IMAGE_WIDTH - length) / 2;
+    u16 y_offset = BOUNDARY;
+    u16 x_offset = BOUNDARY;
 
     u16 px = p.pos.x * ratio + x_offset;
     u16 py = p.pos.y * ratio + y_offset;
 
-    for (u16 i = y_offset; i < IMAGE_HEIGHT-y_offset; ++i) {
-        for (u16 j = x_offset; j < IMAGE_WIDTH-x_offset; ++j) {
-            map_pixels[i*IMAGE_WIDTH + j] = colors[map[(u16) (i - y_offset)/ratio][(u16) (j - x_offset)/ratio]];
+    for (u16 i = 0; i < MAP_IMAGE_HEIGHT; ++i) {
+        for (u16 j = 0; j < MAP_IMAGE_WIDTH; ++j) {
+            if ( (i >= y_offset && i < MAP_IMAGE_HEIGHT-y_offset) &&
+                 (j >= x_offset && j < MAP_IMAGE_WIDTH-x_offset) ) continue;
+            map_pixels[i*MAP_IMAGE_WIDTH + j] = 0xFFA98467;
+        }
+    }
+
+    for (u16 i = y_offset; i < MAP_IMAGE_HEIGHT-y_offset; ++i) {
+        for (u16 j = x_offset; j < MAP_IMAGE_WIDTH-x_offset; ++j) {
+            map_pixels[i*MAP_IMAGE_WIDTH + j] = colors[map[(u16) (i - y_offset)/ratio][(u16) (j - x_offset)/ratio]];
         }
     }
 
     v2 ray_end;
-    u8 r = 2;
+    u8 r = 0;
     ray_intersection ri;
     for (u16 i = py+r; i < py+ratio/5-r; ++i) {
         for (u16 j = px+r; j < px+ratio/5-r; ++j) {
-            for (float ps = -1; ps <= 1; ps+=0.02) {
+            for (float ps = -1; ps <= 1; ps+=0.025) {
                 ri = ray_intersect(ps);
                 ray_end = scale(ray_dir(ps), ri.ray_len * ratio);
-                draw_line(map_pixels, IMAGE_WIDTH, IMAGE_HEIGHT, j, px + (i16) ray_end.x, i, py + (i16) ray_end.y, 0xFFFCF6BD);
+                draw_line(map_pixels, MAP_IMAGE_WIDTH, MAP_IMAGE_HEIGHT, j, px + (i16) ray_end.x, i, py + (i16) ray_end.y, 0xFFFCF6BD);
             }
         }
     }
 
     for (u16 i = py; i < py+ratio/5; ++i) {
         for (u16 j = px; j < px+ratio/5; ++j) {
-            map_pixels[i*IMAGE_WIDTH + j] = 0xFFCED4DA;
+            map_pixels[i*MAP_IMAGE_WIDTH + j] = 0xFFCED4DA;
         }
     }
 
-    update_display(map_pixels);
+
+    SDL_UpdateTexture(map_texture, NULL, map_pixels, sizeof(u32) * MAP_IMAGE_WIDTH);
+    SDL_RenderSetViewport(renderer, &map_viewport);
+    SDL_RenderCopy(renderer, map_texture, NULL, NULL);
 }
 
 void render_3d_raycast() {
@@ -275,17 +289,23 @@ void render_3d_raycast() {
         float pane = 2.0 * (float) i / IMAGE_WIDTH - 1;
         ray_intersection ri = ray_intersect(pane);
         u16 height = (u16) min(IMAGE_HEIGHT, IMAGE_HEIGHT / ri.ray_len);
-        u32 color = colors[map[(u16)ri.intersect_loc.y][(u16)ri.intersect_loc.x]];
-        if (ri.hit_side == 1) {
+        bool outside = (ri.intersect_loc.y < 0 || ri.intersect_loc.y >= MAP_HEIGHT || 
+                        ri.intersect_loc.x < 0 || ri.intersect_loc.x >= MAP_WIDTH);
+        u32 color;
+        if (outside) color = SKY_COLOR;
+        else color = colors[map[(u16)ri.intersect_loc.y][(u16)ri.intersect_loc.x]];
+        if (!outside && ri.hit_side == 1) {
             u32 r = color & 0xFF0000, g = color & 0x00FF00, b = color & 0x0000FF;
             color = 0xFF000000 | (r * 0xED / 0xFF) | (g * 0xFA / 0xFF) | (b * 0xFD / 0xFF);
 
         }
-        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, 0, IMAGE_HEIGHT/2 - height/2, 0xFFCAF0F8);
+        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, 0, IMAGE_HEIGHT/2 - height/2, SKY_COLOR);
         draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, IMAGE_HEIGHT/2 - height/2, IMAGE_HEIGHT/2 + height/2, color);
-        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, IMAGE_HEIGHT/2 + height/2, IMAGE_HEIGHT, 0xFFE3D5CA);
+        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, IMAGE_HEIGHT/2 + height/2, IMAGE_HEIGHT, GROUND_COLOR);
     }
-    update_display(pixels);
+    SDL_UpdateTexture(texture, NULL, pixels, sizeof(u32) * IMAGE_WIDTH);
+    SDL_RenderSetViewport(renderer, &full_viewport);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
 int main(int argc, char **argv) {
@@ -297,6 +317,9 @@ int main(int argc, char **argv) {
     texture = SDL_CreateTexture(renderer, 
                                 SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 
                                 IMAGE_WIDTH, IMAGE_HEIGHT);
+    map_texture = SDL_CreateTexture(renderer, 
+                                    SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 
+                                    MAP_IMAGE_WIDTH, MAP_IMAGE_HEIGHT);
 
     SDL_Event event;
     bool quit = false;
@@ -338,9 +361,12 @@ int main(int argc, char **argv) {
         if (quit) break;
 
         memset(pixels, 0, sizeof(u32) * IMAGE_SIZE);
-        memset(map_pixels, 0, sizeof(u32) * IMAGE_SIZE);
+        memset(map_pixels, 0, sizeof(u32) * MAP_IMAGE_SIZE);
+        SDL_RenderSetViewport(renderer, &full_viewport);
+        SDL_RenderClear(renderer);
+        render_3d_raycast();
         if (!view3d) render_2d_raycast();
-        else render_3d_raycast();
+        SDL_RenderPresent(renderer);
     }
 
     SDL_DestroyTexture(texture);
