@@ -17,8 +17,8 @@
 #define IMAGE_HEIGHT SCREEN_HEIGHT
 #define IMAGE_SIZE IMAGE_WIDTH*IMAGE_HEIGHT
 
-#define MAP_WIDTH 16
-#define MAP_HEIGHT 16
+#define MAP_WIDTH 32
+#define MAP_HEIGHT 32
 #define MAP_SIZE MAP_WIDTH*MAP_HEIGHT
 
 #define BOUNDARY 8
@@ -33,6 +33,7 @@
 #define GROUND_COLOR 0xFFE3D5CA
 
 #define SIGN(x) (x < 0 ? -1 : (x > 0 ? 1 : 0))
+#define BOUND(x, mn, mx) (max(min(x, mx), mn))
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -50,6 +51,7 @@ typedef struct {
     v2 pos;
     v2 dir;
     v2 plane;
+    float z;
 } player;
 
 typedef struct {
@@ -105,22 +107,38 @@ u32 colors[] = {0, 0, PURPLE, PINK, BLUE};
 // 0=empty, 1=player, 2/3/4 = walls
 u32 map_pixels[MAP_IMAGE_SIZE] = {0};
 u8 map[MAP_HEIGHT][MAP_WIDTH] = {
-    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
-    {2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 2},
-    {2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 0},
-    {2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 4, 4, 0, 0},
-    {2, 3, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 4, 4, 0, 0},
-    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 2},
-    {2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 2},
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2},
-    {2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2}
+    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 2, 2, 2, 0, 0, 2, 2, 2, 2, 2},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 2, 2},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}
 };
 
 void draw_line(u32 *pixels, u16 image_width, u16 image_height, u32 x_start, u32 x_end, u32 y_start, u32 y_end, u32 color) {
@@ -260,11 +278,11 @@ void render_2d_raycast() {
     }
 
     v2 ray_end;
-    u8 r = 0;
+    u8 r = 1;
     ray_intersection ri;
-    for (u16 i = py+r; i < py+ratio/5-r; ++i) {
-        for (u16 j = px+r; j < px+ratio/5-r; ++j) {
-            for (float ps = -1; ps <= 1; ps+=0.025) {
+    for (u16 i = py+r; i < py+ratio/3-r; ++i) {
+        for (u16 j = px+r; j < px+ratio/3-r; ++j) {
+            for (float ps = -1; ps <= 1; ps+=0.01) {
                 ri = ray_intersect(ps);
                 ray_end = scale(ray_dir(ps), ri.ray_len * ratio);
                 draw_line(map_pixels, MAP_IMAGE_WIDTH, MAP_IMAGE_HEIGHT, j, px + (i16) ray_end.x, i, py + (i16) ray_end.y, 0xFFFCF6BD);
@@ -272,9 +290,9 @@ void render_2d_raycast() {
         }
     }
 
-    for (u16 i = py; i < py+ratio/5; ++i) {
-        for (u16 j = px; j < px+ratio/5; ++j) {
-            map_pixels[i*MAP_IMAGE_WIDTH + j] = 0xFFCED4DA;
+    for (u16 i = py; i < py+ratio/3; ++i) {
+        for (u16 j = px; j < px+ratio/3; ++j) {
+            map_pixels[i*MAP_IMAGE_WIDTH + j] = 0xFF8D99AE;
         }
     }
 
@@ -288,7 +306,7 @@ void render_3d_raycast() {
     for (u16 i = 0; i < IMAGE_WIDTH; ++i) {
         float pane = 2.0 * (float) i / IMAGE_WIDTH - 1;
         ray_intersection ri = ray_intersect(pane);
-        u16 height = (u16) min(IMAGE_HEIGHT, IMAGE_HEIGHT / ri.ray_len);
+        u16 height = (u16) IMAGE_HEIGHT / ri.ray_len;
         bool outside = (ri.intersect_loc.y < 0 || ri.intersect_loc.y >= MAP_HEIGHT || 
                         ri.intersect_loc.x < 0 || ri.intersect_loc.x >= MAP_WIDTH);
         u32 color;
@@ -299,9 +317,12 @@ void render_3d_raycast() {
             color = 0xFF000000 | (r * 0xED / 0xFF) | (g * 0xFA / 0xFF) | (b * 0xFD / 0xFF);
 
         }
-        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, 0, IMAGE_HEIGHT/2 - height/2, SKY_COLOR);
-        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, IMAGE_HEIGHT/2 - height/2, IMAGE_HEIGHT/2 + height/2, color);
-        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, IMAGE_HEIGHT/2 + height/2, IMAGE_HEIGHT, GROUND_COLOR);
+
+        u16 wall_start = BOUND(IMAGE_HEIGHT/2 - height/2 + p.z, 0, IMAGE_HEIGHT);
+        u16 wall_end = BOUND(IMAGE_HEIGHT/2 - height/2 + p.z + height, 0, IMAGE_HEIGHT);
+        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, 0, wall_start, SKY_COLOR);
+        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, wall_start, wall_end, color);
+        draw_vert_line(pixels, IMAGE_WIDTH, IMAGE_HEIGHT, i, wall_end, IMAGE_HEIGHT, GROUND_COLOR);
     }
     SDL_UpdateTexture(texture, NULL, pixels, sizeof(u32) * IMAGE_WIDTH);
     SDL_RenderSetViewport(renderer, &full_viewport);
@@ -309,7 +330,7 @@ void render_3d_raycast() {
 }
 
 int main(int argc, char **argv) {
-    p = (player) { (v2){8, 8}, (v2){1, 0}, (v2){0, 1} };
+    p = (player) { (v2){8, 8}, (v2){1, 0}, (v2){0, 1}, 0 };
 
     window = SDL_CreateWindow("Tinyraycast Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
                                SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
@@ -323,8 +344,9 @@ int main(int argc, char **argv) {
 
     SDL_Event event;
     bool quit = false;
-    u8 view3d = 0;
-    float rotate_speed = M_PI / 16.0, move_speed = 0.1;
+    bool view_map = false;
+    i8 z_count = 0;
+    float rotate_speed = M_PI / 16.0, move_speed = 0.1, z_speed = 100;
     while (1) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
@@ -335,22 +357,34 @@ int main(int argc, char **argv) {
                 u8 sym = event.key.keysym.scancode;
                 float nx = p.pos.x, ny = p.pos.y;
                 if (sym == SDL_SCANCODE_SPACE) {
-                    view3d ^= 1;
+                    view_map ^= 1;
                 } else if (sym == SDL_SCANCODE_ESCAPE) {
                     quit = true;
                     break;
                 } else if (sym == SDL_SCANCODE_LEFT) {
-                    p.dir = rotate(p.dir, rotate_speed);
-                    p.plane = rotate(p.plane, rotate_speed);
+                    nx = p.pos.x - p.plane.x * move_speed;
+                    ny = p.pos.y - p.plane.y * move_speed;
                 } else if (sym == SDL_SCANCODE_RIGHT) {
-                    p.dir = rotate(p.dir, -rotate_speed);
-                    p.plane = rotate(p.plane, -rotate_speed);
+                    nx = p.pos.x + p.plane.x * move_speed;
+                    ny = p.pos.y + p.plane.y * move_speed;
                 } else if (sym == SDL_SCANCODE_UP) {
                     nx = p.pos.x + p.dir.x * move_speed;
                     ny = p.pos.y + p.dir.y * move_speed;
                 } else if (sym == SDL_SCANCODE_DOWN) {
                     nx = p.pos.x - p.dir.x * move_speed;
                     ny = p.pos.y - p.dir.y * move_speed;
+                } else if (sym == SDL_SCANCODE_W && z_count < 3) {
+                    p.z += z_speed;
+                    z_count++;
+                } else if (sym == SDL_SCANCODE_S && z_count > -3) {
+                    p.z -= z_speed;
+                    z_count--;
+                } else if (sym == SDL_SCANCODE_A) {
+                    p.dir = rotate(p.dir, rotate_speed);
+                    p.plane = rotate(p.plane, rotate_speed);
+                } else if (sym == SDL_SCANCODE_D) {
+                    p.dir = rotate(p.dir, -rotate_speed);
+                    p.plane = rotate(p.plane, -rotate_speed);
                 }
                 if (map[(u16) ny][(u16) nx] == 0) {
                     p.pos.x = nx;
@@ -365,7 +399,7 @@ int main(int argc, char **argv) {
         SDL_RenderSetViewport(renderer, &full_viewport);
         SDL_RenderClear(renderer);
         render_3d_raycast();
-        if (!view3d) render_2d_raycast();
+        if (view_map) render_2d_raycast();
         SDL_RenderPresent(renderer);
     }
 
