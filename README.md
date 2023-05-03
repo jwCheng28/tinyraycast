@@ -37,4 +37,4 @@ Run the following commands:
 
 Currently, the only dependency is SDL2, you can get it on ubuntu by running `sudo apt-get install libsdl2-dev`
 
-Compile and run the program by running the Makefile `make`
+Compile the program by running the Makefile `make`, then run it make running `make run`
