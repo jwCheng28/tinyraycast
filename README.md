@@ -3,6 +3,9 @@
 This is currently a simple raycasting engine that uses raycast and projection to turn a 2d space into a 3d first-person-view environment.
 
 ## Demo
+### Web Demo
+Checkout the web demo at https://jwcheng28.github.io/tinyraycast/
+
 ### 2D view
 
 Stationary | Moving
