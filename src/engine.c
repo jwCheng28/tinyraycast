@@ -6,6 +6,10 @@
 #include <assert.h>
 #include <SDL2/SDL.h>
 
+#ifdef __EMSCRIPTEN__
+#include "emscripten.h"
+#endif
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -333,6 +337,113 @@ void render_3d_raycast() {
     SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
+SDL_Event event;
+i8 z_count = 0, editor_color = 4;
+bool quit = false, view_map = false, editor_mode = false, mouse_pressed = false;
+float rotate_speed = M_PI / 16.0, move_speed = 0.1, z_speed = 100;
+
+void mainloop() {
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            quit = true;
+            break;
+        }
+        if (event.type == SDL_MOUSEBUTTONUP) mouse_pressed = false;
+        if (event.type == SDL_MOUSEBUTTONDOWN) mouse_pressed = true;
+        if (event.type == SDL_MOUSEMOTION) {
+            if (mouse_pressed) {
+                u16 mousex = event.motion.x, mousey = event.motion.y;
+                if (view_map && editor_mode &&
+                    INBOUND(mousex, BOUNDARY, MAP_IMAGE_WIDTH-BOUNDARY-1) &&
+                    INBOUND(mousey, BOUNDARY, MAP_IMAGE_HEIGHT-BOUNDARY-1)) {
+                    u8 mapx = (mousex - BOUNDARY) / (MAP_VIEW_WIDTH / MAP_WIDTH);
+                    u8 mapy = (mousey - BOUNDARY) / (MAP_VIEW_HEIGHT / MAP_HEIGHT);
+                    if (mapy == (u16)p.pos.y && mapx == (u16)p.pos.x) continue;
+                    map[mapy][mapx] = editor_color;
+                }
+            }
+        }
+        if (event.type == SDL_KEYDOWN) {
+            u8 sym = event.key.keysym.scancode;
+            #ifndef __EMSCRIPTEN__
+            if (sym == SDL_SCANCODE_ESCAPE) {
+                quit = true;
+                break;
+            }
+            #endif
+
+            if (sym == SDL_SCANCODE_SPACE) {
+                view_map ^= 1;
+            } else if (sym == SDL_SCANCODE_E) {
+                editor_mode = true;
+            } else if (sym == SDL_SCANCODE_N) {
+                editor_mode = false;
+            }
+
+            float nx = p.pos.x, ny = p.pos.y;
+            if (sym == SDL_SCANCODE_LEFT) {
+                nx = p.pos.x - p.plane.x * move_speed;
+                ny = p.pos.y - p.plane.y * move_speed;
+            } else if (sym == SDL_SCANCODE_RIGHT) {
+                nx = p.pos.x + p.plane.x * move_speed;
+                ny = p.pos.y + p.plane.y * move_speed;
+            } else if (sym == SDL_SCANCODE_UP) {
+                nx = p.pos.x + p.dir.x * move_speed;
+                ny = p.pos.y + p.dir.y * move_speed;
+            } else if (sym == SDL_SCANCODE_DOWN) {
+                nx = p.pos.x - p.dir.x * move_speed;
+                ny = p.pos.y - p.dir.y * move_speed;
+            } else if (sym == SDL_SCANCODE_W && z_count < 3) {
+                p.z += z_speed;
+                z_count++;
+            } else if (sym == SDL_SCANCODE_S && z_count > -3) {
+                p.z -= z_speed;
+                z_count--;
+            } else if (sym == SDL_SCANCODE_A) {
+                p.dir = rotate(p.dir, rotate_speed);
+                p.plane = rotate(p.plane, rotate_speed);
+            } else if (sym == SDL_SCANCODE_D) {
+                p.dir = rotate(p.dir, -rotate_speed);
+                p.plane = rotate(p.plane, -rotate_speed);
+            }
+            if (map[(u16) ny][(u16) nx] == 0) {
+                p.pos.x = nx;
+                p.pos.y = ny;
+            }
+
+            if (!editor_mode) continue;
+            if (sym == SDL_SCANCODE_1) {
+                editor_color = 0;
+            } else if (sym == SDL_SCANCODE_2) {
+                editor_color = 2;
+            } else if (sym == SDL_SCANCODE_3) {
+                editor_color = 3;
+            } else if (sym == SDL_SCANCODE_4) {
+                editor_color = 4;
+            } 
+        }
+    }
+    if (quit) {
+        SDL_DestroyTexture(texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        #ifdef __EMSCRIPTEN__
+        emscripten_cancel_main_loop();
+        #endif
+        return;
+    }
+
+    memset(pixels, 0, sizeof(u32) * IMAGE_SIZE);
+    memset(map_pixels, 0, sizeof(u32) * MAP_IMAGE_SIZE);
+    SDL_RenderSetViewport(renderer, &full_viewport);
+    SDL_RenderClear(renderer);
+
+    render_3d_raycast();
+    if (view_map) render_2d_raycast();
+    SDL_RenderPresent(renderer);
+}
+
 int main(int argc, char **argv) {
     p = (player) { (v2){16, 4}, (v2){0, 1}, (v2){-1, 0}, 0 };
 
@@ -346,104 +457,12 @@ int main(int argc, char **argv) {
     map_texture = SDL_CreateTexture(renderer, 
                                     SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 
                                     MAP_IMAGE_WIDTH, MAP_IMAGE_HEIGHT);
-    SDL_Event event;
-    i8 z_count = 0, editor_color = 4;
-    bool quit = false, view_map = false, editor_mode = false, mouse_pressed = false;
-    float rotate_speed = M_PI / 16.0, move_speed = 0.1, z_speed = 100;
-    while (1) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                quit = true;
-                break;
-            }
-            if (event.type == SDL_MOUSEBUTTONUP) mouse_pressed = false;
-            if (event.type == SDL_MOUSEBUTTONDOWN) mouse_pressed = true;
-            if (event.type == SDL_MOUSEMOTION) {
-                if (mouse_pressed) {
-                    u16 mousex = event.motion.x, mousey = event.motion.y;
-                    if (view_map && editor_mode &&
-                        INBOUND(mousex, BOUNDARY, MAP_IMAGE_WIDTH-BOUNDARY-1) &&
-                        INBOUND(mousey, BOUNDARY, MAP_IMAGE_HEIGHT-BOUNDARY-1)) {
-                        u8 mapx = (mousex - BOUNDARY) / (MAP_VIEW_WIDTH / MAP_WIDTH);
-                        u8 mapy = (mousey - BOUNDARY) / (MAP_VIEW_HEIGHT / MAP_HEIGHT);
-                        if (mapy == (u16)p.pos.y && mapx == (u16)p.pos.x) continue;
-                        map[mapy][mapx] = editor_color;
-                    }
-                }
-            }
-            if (event.type == SDL_KEYDOWN) {
-                u8 sym = event.key.keysym.scancode;
-                if (sym == SDL_SCANCODE_ESCAPE) {
-                    quit = true;
-                    break;
-                }
 
-                if (sym == SDL_SCANCODE_SPACE) {
-                    view_map ^= 1;
-                } else if (sym == SDL_SCANCODE_E) {
-                    editor_mode = true;
-                } else if (sym == SDL_SCANCODE_N) {
-                    editor_mode = false;
-                }
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(mainloop, 0, 1);
+    #else
+    while (!quit) mainloop();
+    #endif
 
-                float nx = p.pos.x, ny = p.pos.y;
-                if (sym == SDL_SCANCODE_LEFT) {
-                    nx = p.pos.x - p.plane.x * move_speed;
-                    ny = p.pos.y - p.plane.y * move_speed;
-                } else if (sym == SDL_SCANCODE_RIGHT) {
-                    nx = p.pos.x + p.plane.x * move_speed;
-                    ny = p.pos.y + p.plane.y * move_speed;
-                } else if (sym == SDL_SCANCODE_UP) {
-                    nx = p.pos.x + p.dir.x * move_speed;
-                    ny = p.pos.y + p.dir.y * move_speed;
-                } else if (sym == SDL_SCANCODE_DOWN) {
-                    nx = p.pos.x - p.dir.x * move_speed;
-                    ny = p.pos.y - p.dir.y * move_speed;
-                } else if (sym == SDL_SCANCODE_W && z_count < 3) {
-                    p.z += z_speed;
-                    z_count++;
-                } else if (sym == SDL_SCANCODE_S && z_count > -3) {
-                    p.z -= z_speed;
-                    z_count--;
-                } else if (sym == SDL_SCANCODE_A) {
-                    p.dir = rotate(p.dir, rotate_speed);
-                    p.plane = rotate(p.plane, rotate_speed);
-                } else if (sym == SDL_SCANCODE_D) {
-                    p.dir = rotate(p.dir, -rotate_speed);
-                    p.plane = rotate(p.plane, -rotate_speed);
-                }
-                if (map[(u16) ny][(u16) nx] == 0) {
-                    p.pos.x = nx;
-                    p.pos.y = ny;
-                }
-
-                if (!editor_mode) continue;
-                if (sym == SDL_SCANCODE_1) {
-                    editor_color = 0;
-                } else if (sym == SDL_SCANCODE_2) {
-                    editor_color = 2;
-                } else if (sym == SDL_SCANCODE_3) {
-                    editor_color = 3;
-                } else if (sym == SDL_SCANCODE_4) {
-                    editor_color = 4;
-                } 
-            }
-        }
-        if (quit) break;
-
-        memset(pixels, 0, sizeof(u32) * IMAGE_SIZE);
-        memset(map_pixels, 0, sizeof(u32) * MAP_IMAGE_SIZE);
-        SDL_RenderSetViewport(renderer, &full_viewport);
-        SDL_RenderClear(renderer);
-
-        render_3d_raycast();
-        if (view_map) render_2d_raycast();
-        SDL_RenderPresent(renderer);
-    }
-
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
     return 0;
 }
