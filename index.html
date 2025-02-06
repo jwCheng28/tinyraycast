@@ -7,14 +7,15 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <div style="margin: auto; position: absolute; top:0; left:2;">
-            <h2>Controls:</h2> <br>
-            - Arrow keys to move <br>
-            - WASD to adjust camera <br>
-            - Space to open 2d view <br>
-            - E to enter editor mode <br> 
-              (enable ability to draw on 2d view) <br>
-            - N to exit editor mode
+         <div style="margin: auto; position: relative; float: left; top: 0; right: 100px; z-index: 2;">
+            <h2>Controls</h2>
+            * Arrow Keys to Move * <br>
+            * A/D to Turn Left/Right * <br>
+            * W/S to Look Up/Down * <br>
+            * Spacebar to Open 2D Map View * <br>
+            * E to Enter Editor Mode * <br> 
+              (Lets You Draw Walls on The 2D Map) <br>
+            * N to Exit Editor Mode *
         </div>
         <div class="center">
             <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
